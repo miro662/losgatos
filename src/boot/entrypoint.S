@@ -1,16 +1,21 @@
 .section .text.boot
 
+/// Sets processor in RISC-V ABI compliant state and starts Rust kernel code
 .global entrypoint
 entrypoint:
-    li a7, 0x4442434E // debug console extension
-    li a6, 0x2 // console write byte
-    li a0, 'x'
-    ecall
+    // reset memory mapping
+    csrw satp, zero
 
-    li a7, 0x4442434E // debug console extension
-    li a6, 0x2 // console write byte
-    li a0, 'D'
-    ecall
-
+    // clear bss
+    la t1, _bss_start
+    la t2, _bss_end
 1:
-    j 1b
+    sd zero, (t1)
+    addi t1, t1, 8
+    blt t2, t1, 1b
+
+    // initialize stack
+    la sp, _stack_end
+
+    // a0 - hart id - is preserved
+    tail kernel_boot

@@ -5,6 +5,6 @@ args = [
     "-serial", "mon:stdio", 
     "-bios",  "fw_jump.bin",
     "-kernel", "target/riscv64gc-unknown-none-elf/debug/losgatos",
-    "-nographic"
+    "-nographic",
 ]
 dependencies = ["build"]
