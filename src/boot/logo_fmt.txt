@@ -1,0 +1,6 @@
+|\     /|
+| \___/ |  /|
+| u   u |_/ |    losGatOS, master branch
+| >=u=< | o |    (c) Miroslaw Blazej 2024
+ \_____/v=< |
+    \_______/

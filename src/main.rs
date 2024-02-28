@@ -2,13 +2,14 @@
 #![no_main]
 
 pub mod boot;
+pub mod debug;
 pub mod sbi;
 
 use core::panic::PanicInfo;
+use debug::kdebug;
 
 #[panic_handler]
-fn panic_handler(_panic: &PanicInfo) -> ! {
-    let console_extension = sbi::DebugConsole::get_if_available().unwrap();
-    console_extension.write_byte('P' as u8);
+fn panic_handler(panic: &PanicInfo) -> ! {
+    kdebug!("\n[ :( ] KERNEL PANIC\n{}\n", panic);
     loop {}
 }

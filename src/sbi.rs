@@ -66,11 +66,6 @@ struct SbiCall {
 type SbiResult = Result<i32, i32>;
 
 impl SbiCall {
-    fn split_pointer<T>(pointer: *const T) -> (u32, u32) {
-        let contents: [u32; 2] = unsafe { mem::transmute(pointer) };
-        (contents[0], contents[1])
-    }
-
     unsafe fn make(&self) -> SbiResult {
         let mut error: i32;
         let mut value: i32;
