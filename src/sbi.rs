@@ -1,103 +1,71 @@
-/// Rust wrapper over SBI v2 interface.
-///
-/// Safe wrappers over SBI functions used in LosGatOS.
-/// Based on https://drive.google.com/file/d/1U2kwjqxXgDONXk_-ZDTYzvsV-F_8ylEH/view
+//! Wrapper arround SBI calls
+
 use core::arch::asm;
-use core::mem;
 
-/// Represents access to base extension
-pub struct Base;
+#[derive(Debug)]
+pub struct Error;
+pub type Result = core::result::Result<i64, Error>;
 
-impl Base {
-    /// Checks if extension with given name exists
-    pub fn probe_extension(&self, extension: ExtensionName) -> bool {
-        let call = SbiCall {
-            extension_name: ExtensionName::Base,
-            fid: 2,
-            params: [extension as u32, 0, 0, 0, 0, 0],
-        };
-        let result = unsafe { call.make() };
-        result.map(|r| r > 0).unwrap_or_default()
-    }
-}
+macro_rules! sbi_call {
+    {$fname:ident, eid: $eid:expr, fid: $fid:expr} => {
+        pub unsafe fn $fname() -> Result {
+            let mut error: i64;
+            let mut value: i64;
 
-/// Represents access to console extension
-pub struct DebugConsole {
-    _construction_guard: (),
-}
+            asm! {
+                "mv a7, {extension_id}",
+                "mv a6, {fid}",
+                "ecall",
+                "mv {error}, a0",
+                "mv {value}, a1",
+                extension_id = in(reg) $eid,
+                fid = in(reg) $fid,
+                error = out(reg) error,
+                value = out(reg) value,
+            }
+    
+            if error < 0 {
+                Err(Error)
+            } else {
+                Ok(value)
+            }
+        }
+    };
 
-impl DebugConsole {
-    /// Returns debug console handle if it is supported
-    pub fn get_if_available() -> Option<DebugConsole> {
-        if true {
-            Some(DebugConsole {
-                _construction_guard: (),
-            })
-        } else {
-            None
+    {$fname:ident, eid: $eid:expr, fid: $fid:expr, args: [$arg0:ident : $arg0_type:ident]} => {
+        pub unsafe fn $fname($arg0: $arg0_type) -> Result {
+            let mut error: i64;
+            let mut value: i64;
+
+            asm! {
+                "mv a7, {extension_id}",
+                "mv a6, {fid}",
+                "mv a0, {arg0}",
+                "ecall",
+                "mv {error}, a0",
+                "mv {value}, a1",
+                extension_id = in(reg) $eid,
+                fid = in(reg) $fid,
+                arg0 = in(reg) $arg0,
+                error = out(reg) error,
+                value = out(reg) value,
+            }
+    
+            if error < 0 {
+                Err(Error)
+            } else {
+                Ok(value)
+            }
         }
     }
-
-    /// Writes a single byte to debug console
-    pub fn write_byte(&self, byte: u8) {
-        let call = SbiCall {
-            extension_name: ExtensionName::DebugConsole,
-            fid: 2,
-            params: [byte.into(), 0, 0, 0, 0, 0],
-        };
-        unsafe { call.make().unwrap() };
-    }
 }
 
-/// Names of SBI extensions
-#[derive(Debug, Clone, Copy)]
-pub enum ExtensionName {
-    Base = 0x10,
-    DebugConsole = 0x4442434E,
+
+sbi_call! {
+    hart_stop, eid: 0x48534D, fid: 0x1
 }
 
-#[derive(Debug, Clone, Copy)]
-struct SbiCall {
-    extension_name: ExtensionName,
-    fid: i32,
-    params: [u32; 6],
-}
 
-type SbiResult = Result<i32, i32>;
-
-impl SbiCall {
-    unsafe fn make(&self) -> SbiResult {
-        let mut error: i32;
-        let mut value: i32;
-
-        asm! {
-            "mv a7, {extension_id}",
-            "mv a6, {fid}",
-            "mv a0, {param0}",
-            "mv a1, {param1}",
-            "mv a2, {param2}",
-            "mv a3, {param3}",
-            "mv a4, {param4}",
-            "mv a5, {param5}",
-            "ecall",
-            "mv {error}, a0",
-            "mv {value}, a1",
-            extension_id = in(reg) self.extension_name as i32,
-            fid = in(reg) self.fid,
-            param0 = in(reg) self.params[0],
-            param1 = in(reg) self.params[1],
-            param2 = in(reg) self.params[2],
-            param3 = in(reg) self.params[3],
-            param4 = in(reg) self.params[4],
-            param5 = in(reg) self.params[5],
-            error = out(reg) error,
-            value = out(reg) value,
-        }
-
-        if error < 0 {
-            Err(error)
-        } else {
-            Ok(value)
-        }
-    }
+sbi_call! {
+    debug_console_write_byte, eid: 0x4442434E, fid: 0x2, args: [byte: u8]
 }

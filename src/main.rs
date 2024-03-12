@@ -17,7 +17,9 @@ global_asm!(include_str!("entrypoint.S"));
 #[no_mangle]
 pub extern "C" fn kernel_boot(hart_id: i32) -> ! {
     if hart_id != 0 {
-        loop {}
+        unsafe {
+            sbi::hart_stop().unwrap_or_else(|_| loop {});
+        }
     }
 
     kdebug!(include_str!("logo_fmt.txt"));

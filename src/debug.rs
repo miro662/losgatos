@@ -4,12 +4,14 @@ use core::fmt;
 use crate::sbi;
 
 /// Wrapper over sbi::DebugConsole implementing fmt::Write
-pub struct DebugOutput(pub sbi::DebugConsole);
+pub struct DebugOutput;
 
 impl fmt::Write for DebugOutput {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for byte in s.bytes() {
-            self.0.write_byte(byte);
+            unsafe {
+                let _ = sbi::debug_console_write_byte(byte);
+            }
         }
         Ok(())
     }
@@ -21,12 +23,10 @@ impl fmt::Write for DebugOutput {
 macro_rules! kdebug {
     ($($arg:tt)*) => {
         {
-            if let Some(debug_console) = sbi::DebugConsole::get_if_available() {
-                use crate::debug::DebugOutput;
-                use core::fmt::Write;
-                let mut debug_output = DebugOutput(debug_console);
-                write!(&mut debug_output, "{}\n", format_args!($($arg)*)).unwrap();
-            }
+            use crate::debug::DebugOutput;
+            use core::fmt::Write;
+            let mut debug_output = DebugOutput;
+            write!(&mut debug_output, "{}\n", format_args!($($arg)*)).unwrap();
         }
     }
 }
