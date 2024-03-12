@@ -1,5 +1,4 @@
 /// Debug facilities
-
 use core::fmt;
 
 use crate::sbi;
@@ -17,7 +16,7 @@ impl fmt::Write for DebugOutput {
 }
 
 /// Writes a formatted string onto a SBI debug console (if available).
-/// 
+///
 /// Accepts the same arguments as std::fmt::println!
 macro_rules! kdebug {
     ($($arg:tt)*) => {
