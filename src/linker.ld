@@ -30,6 +30,8 @@ SECTIONS {
         _stack_end = .;
         _bss_end = .;
     }
+
+    heap_start = .;
 } 
 
 ENTRY(entrypoint)

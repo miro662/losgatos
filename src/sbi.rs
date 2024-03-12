@@ -23,7 +23,7 @@ macro_rules! sbi_call {
                 error = out(reg) error,
                 value = out(reg) value,
             }
-    
+
             if error < 0 {
                 Err(Error)
             } else {
@@ -50,7 +50,7 @@ macro_rules! sbi_call {
                 error = out(reg) error,
                 value = out(reg) value,
             }
-    
+
             if error < 0 {
                 Err(Error)
             } else {
@@ -60,11 +60,9 @@ macro_rules! sbi_call {
     }
 }
 
-
 sbi_call! {
     hart_stop, eid: 0x48534D, fid: 0x1
 }
-
 
 sbi_call! {
     debug_console_write_byte, eid: 0x4442434E, fid: 0x2, args: [byte: u8]
