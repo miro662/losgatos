@@ -6,6 +6,9 @@ pub struct AtomicMutex<T: ?Sized> {
     inner: T
 }
 
+unsafe impl<T: Sized> Send for AtomicMutex<T> {}
+unsafe impl<T: Sized> Sync for AtomicMutex<T> {}
+
 pub struct AtomicMutexGuard<'a, T: ?Sized> {
     mutex: &'a AtomicMutex<T>,
     inner: &'a mut T

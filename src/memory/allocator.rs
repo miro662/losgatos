@@ -5,7 +5,7 @@ use core::{
 
 use crate::debug::kdebug;
 
-static HEAP_POINTER: AtomicUsize = AtomicUsize::new(0x80300000);
+static HEAP_POINTER: AtomicUsize = AtomicUsize::new(0x80220000);
 
 struct Allocator;
 

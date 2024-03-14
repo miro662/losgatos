@@ -1,5 +1,5 @@
 SECTIONS {
-    . = 0x0000000080200000; 
+    . = 0x80200000; 
 
     .text.boot ALIGN(4096): {  
         *(.text.boot)
