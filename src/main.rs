@@ -7,8 +7,8 @@ use core::arch::global_asm;
 mod debug;
 mod memory;
 mod sbi;
+mod sync;
 
-use alloc::vec;
 use core::panic::PanicInfo;
 use debug::kdebug;
 
@@ -26,11 +26,6 @@ pub extern "C" fn kernel_boot(hart_id: i32) -> ! {
     }
 
     kdebug!(include_str!("logo_fmt.txt"));
-
-    let xd = vec![21, 37];
-    let xd2 = vec![14, 88];
-    kdebug!("{:?} {:?}", xd, xd2);
-
     panic!("no further actions")
 }
 
