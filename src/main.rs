@@ -10,7 +10,6 @@ mod memory;
 mod sbi;
 mod sync;
 
-use alloc::vec;
 use core::ffi::c_void;
 use core::panic::PanicInfo;
 use debug::kdebug;
@@ -31,11 +30,9 @@ pub extern "C" fn kernel_boot(hart_id: i32, devicetree_ptr: *const c_void) -> ! 
     }
 
     kdebug!(include_str!("logo_fmt.txt"));
+
     let device_tree = DeviceTree::from_pointer(devicetree_ptr);
-    kdebug!(
-        "reserved regions: {:?}",
-        device_tree.reserved_entries().next()
-    );
+    device_tree.print();
 
     panic!("no further actions")
 }

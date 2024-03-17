@@ -3,8 +3,6 @@ use core::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use crate::debug::kdebug;
-
 extern "C" {
     static _heap_start: u8;
 }
@@ -38,7 +36,6 @@ unsafe impl GlobalAlloc for Allocator {
                 break 'allocation_loop;
             }
         }
-        kdebug!("[memory allocator] allocated {:#x} for {:?}", addr, layout);
         addr as *mut u8
     }
 

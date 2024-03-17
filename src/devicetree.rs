@@ -1,6 +1,11 @@
-use core::{ffi::c_void, slice};
+mod parser;
+
+use core::{ffi::c_void, iter, slice};
+
+use alloc::string::String;
 
 use crate::debug::kdebug;
+use parser::DeviceTreeParser;
 
 /// A reference to a device tree
 pub struct DeviceTree(*const FdtHeader);
@@ -24,7 +29,6 @@ impl DeviceTree {
                 device_tree.header().version()
             )
         };
-        kdebug!("{:?}", device_tree.header().dt_struct(&device_tree));
         device_tree
     }
 
@@ -37,6 +41,37 @@ impl DeviceTree {
         ReserveEntryIterator {
             current_item: self.header().mem_rsvmap(self),
         }
+    }
+
+    pub fn parser(&self) -> DeviceTreeParser<'_> {
+        DeviceTreeParser {
+            structure: self.header().dt_struct(self),
+            strings: self.header().dt_string(self),
+            position: 0
+        }
+    }
+
+    pub fn print(&self) {
+        let mut parser = self.parser();
+        fn print_device_tree(parser: &mut DeviceTreeParser, tabs: usize) {
+            let tabs_str: String = iter::repeat(' ').take(tabs).collect();
+            loop {
+                if let Some(name) = parser.next_node() {
+                    kdebug!("{}{} {{", tabs_str, name);
+                    print_device_tree(parser, tabs + 4);
+                    kdebug!("{}}}", tabs_str);
+                } else if let Some((name, val)) = parser.next_param() {
+                    kdebug!("{}{}: {:?};", tabs_str, name, val);
+                } else if let Some(()) = parser.next_node_end() {
+                    break;
+                } else if parser.is_eof() {
+                    break;
+                } else {
+                    panic!("Wrong format")
+                }
+            }
+        }
+        print_device_tree(&mut parser, 0);
     }
 }
 
