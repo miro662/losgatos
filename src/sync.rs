@@ -1,9 +1,13 @@
-use core::{mem::transmute, ops::{Deref, DerefMut}, sync::atomic::{AtomicBool, Ordering}};
+use core::{
+    mem::transmute,
+    ops::{Deref, DerefMut},
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 #[derive(Debug)]
 pub struct AtomicMutex<T: ?Sized> {
     locked: AtomicBool,
-    inner: T
+    inner: T,
 }
 
 unsafe impl<T: Sized> Send for AtomicMutex<T> {}
@@ -11,14 +15,14 @@ unsafe impl<T: Sized> Sync for AtomicMutex<T> {}
 
 pub struct AtomicMutexGuard<'a, T: ?Sized> {
     mutex: &'a AtomicMutex<T>,
-    inner: &'a mut T
+    inner: &'a mut T,
 }
 
 impl<T> AtomicMutex<T> {
     pub const fn new(t: T) -> AtomicMutex<T> {
         AtomicMutex {
             locked: AtomicBool::new(false),
-            inner: t
+            inner: t,
         }
     }
 }
@@ -26,13 +30,18 @@ impl<T> AtomicMutex<T> {
 impl<T: ?Sized> AtomicMutex<T> {
     pub fn lock(&self) -> AtomicMutexGuard<'_, T> {
         let inner_ptr = &self.inner as *const T;
-        
-        while self.locked.compare_exchange(false, true, Ordering::Acquire, Ordering::Acquire).is_err() {}
+
+        while self
+            .locked
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Acquire)
+            .is_err()
+        {}
 
         // SAFETY: we know that this will be the only reference
-        let inner_mut_ptr: *mut T = unsafe {transmute(inner_ptr)};        
+        let inner_mut_ptr: *mut T = unsafe { transmute(inner_ptr) };
         AtomicMutexGuard {
-            mutex: self, inner: unsafe {inner_mut_ptr.as_mut().unwrap()}
+            mutex: self,
+            inner: unsafe { inner_mut_ptr.as_mut().unwrap() },
         }
     }
 }
@@ -47,7 +56,7 @@ impl<'a, T: ?Sized> Deref for AtomicMutexGuard<'a, T> {
     fn deref(&self) -> &Self::Target {
         self.inner
     }
-    
+
     type Target = T;
 }
 

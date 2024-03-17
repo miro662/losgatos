@@ -1,5 +1,5 @@
 SECTIONS {
-    . = 0x80200000; 
+    . = SBI_NEXT_ADDRESS; 
 
     .text.boot ALIGN(4096): {  
         *(.text.boot)
@@ -29,9 +29,9 @@ SECTIONS {
         . += 0x10000;
         _stack_end = .;
         _bss_end = .;
+        _heap_start = .;
     }
 
-    heap_start = .;
 } 
 
 ENTRY(entrypoint)

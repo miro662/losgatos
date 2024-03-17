@@ -10,6 +10,7 @@ mod sbi;
 mod sync;
 
 use core::panic::PanicInfo;
+use alloc::vec;
 use debug::kdebug;
 
 global_asm!(include_str!("entrypoint.S"));
@@ -26,6 +27,7 @@ pub extern "C" fn kernel_boot(hart_id: i32) -> ! {
     }
 
     kdebug!(include_str!("logo_fmt.txt"));
+    let xd = vec![21, 37];
     panic!("no further actions")
 }
 
