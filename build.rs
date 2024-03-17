@@ -8,7 +8,9 @@ fn main() {
         println!("cargo:rerun-if-changed=src/{}", file);
     }
 
-
-    println!("cargo:rustc-link-arg=-defsym={}={}", "SBI_NEXT_ADDRESS", sbi_next_address);
+    println!(
+        "cargo:rustc-link-arg=-defsym={}={}",
+        "SBI_NEXT_ADDRESS", sbi_next_address
+    );
     println!("cargo:rustc-link-arg=-Tsrc/linker.ld");
 }

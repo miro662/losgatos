@@ -5,13 +5,17 @@ extern crate alloc;
 use core::arch::global_asm;
 
 mod debug;
+mod devicetree;
 mod memory;
 mod sbi;
 mod sync;
 
-use core::panic::PanicInfo;
 use alloc::vec;
+use core::ffi::c_void;
+use core::panic::PanicInfo;
 use debug::kdebug;
+
+use crate::devicetree::DeviceTree;
 
 global_asm!(include_str!("entrypoint.S"));
 
@@ -19,7 +23,7 @@ global_asm!(include_str!("entrypoint.S"));
 ///
 /// Accepts a `hartid` as a parameter. This should be passed by OpenSBI in `a0` register
 #[no_mangle]
-pub extern "C" fn kernel_boot(hart_id: i32) -> ! {
+pub extern "C" fn kernel_boot(hart_id: i32, devicetree_ptr: *const c_void) -> ! {
     if hart_id != 0 {
         unsafe {
             sbi::hart_stop().unwrap_or_else(|_| loop {});
@@ -27,7 +31,12 @@ pub extern "C" fn kernel_boot(hart_id: i32) -> ! {
     }
 
     kdebug!(include_str!("logo_fmt.txt"));
-    let xd = vec![21, 37];
+    let device_tree = DeviceTree::from_pointer(devicetree_ptr);
+    kdebug!(
+        "reserved regions: {:?}",
+        device_tree.reserved_entries().next()
+    );
+
     panic!("no further actions")
 }
 

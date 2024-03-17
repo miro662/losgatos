@@ -1,10 +1,11 @@
 use core::{
-    alloc::GlobalAlloc, ffi::c_void, sync::atomic::{AtomicUsize, Ordering}
+    alloc::GlobalAlloc,
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 use crate::debug::kdebug;
 
-extern {
+extern "C" {
     static _heap_start: u8;
 }
 static HEAP_POINTER: AtomicUsize = AtomicUsize::new(0x0);
@@ -13,7 +14,7 @@ struct Allocator;
 
 unsafe impl GlobalAlloc for Allocator {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
-        let heap_addr = unsafe {&_heap_start as *const u8 as usize};
+        let heap_addr = unsafe { &_heap_start as *const u8 as usize };
         let _ = HEAP_POINTER.compare_exchange(0x0, heap_addr, Ordering::Relaxed, Ordering::Relaxed);
         let mut addr;
         'allocation_loop: loop {
