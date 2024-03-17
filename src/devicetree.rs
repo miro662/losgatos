@@ -14,19 +14,34 @@ impl DeviceTree {
     const DEVICE_TREE_MAGIC: u32 = 0xd00dfeed;
     const DEVICE_TREE_SUPPORTED_VERSION: u32 = 17;
 
+    /// Loads correct device tree, depending on configuration
+    #[cfg(not(OVERRIDE_DTB))]
+    pub fn load_default(ptr: *const c_void) -> DeviceTree {
+        kdebug!("Loading SBI-provided devicetree from {:#x}", ptr as usize);
+        Self::from_pointer(ptr)
+    }
+
+    /// Loads correct device tree, depending on configuration
+    #[cfg(OVERRIDE_DTB)]
+    pub fn load_default(ptr: *const c_void) -> DeviceTree {
+        kdebug!("Loading compile-time provided dtb from {}", env!("DTB_FILE"));
+        let dtb = include_bytes!(env!("DTB_FILE"));
+        Self::from_pointer(dtb);
+    }
+
     /// Creates a DeviceTree reference from a pointer
     pub fn from_pointer(ptr: *const c_void) -> DeviceTree {
         let device_tree = DeviceTree(ptr as *const FdtHeader);
         if device_tree.header().magic() != Self::DEVICE_TREE_MAGIC {
             panic!(
-                "Invaild device tree magic number: {:#x}",
-                device_tree.header().magic()
+                "Invaild device tree magic number: {:#x} (expected {:#x})",
+                device_tree.header().magic(), Self::DEVICE_TREE_MAGIC
             )
         };
         if device_tree.header().version() != Self::DEVICE_TREE_SUPPORTED_VERSION {
             panic!(
-                "Unsupported device tree version: {:#x}",
-                device_tree.header().version()
+                "Unsupported device tree version: {} (expected {})",
+                device_tree.header().version(), Self::DEVICE_TREE_SUPPORTED_VERSION
             )
         };
         device_tree

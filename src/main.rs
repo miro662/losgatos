@@ -23,22 +23,19 @@ global_asm!(include_str!("entrypoint.S"));
 /// Accepts a `hartid` as a parameter. This should be passed by OpenSBI in `a0` register
 #[no_mangle]
 pub extern "C" fn kernel_boot(hart_id: i32, devicetree_ptr: *const c_void) -> ! {
-    if hart_id != 0 {
-        unsafe {
-            sbi::hart_stop().unwrap_or_else(|_| loop {});
-        }
-    }
-
     kdebug!(include_str!("logo_fmt.txt"));
-
-    let device_tree = DeviceTree::from_pointer(devicetree_ptr);
-    device_tree.print();
-
-    panic!("no further actions")
+    kdebug!("Booting from hart {}", hart_id);
+    let device_tree = DeviceTree::load_default(devicetree_ptr);
+    kdebug!("Initialization successful - entering endless loop");
+    loop {}
 }
 
 #[panic_handler]
 fn panic_handler(panic: &PanicInfo) -> ! {
-    kdebug!("\n[ :( ] KERNEL PANIC\n{}\n", panic);
+    kdebug!("");
+    kdebug!("===============================================================================");
+    kdebug!("[ :( ] KERNEL PANIC");
+    kdebug!("-------------------------------------------------------------------------------");
+    kdebug!("{}\n", panic);
     loop {}
 }
