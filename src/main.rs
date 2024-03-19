@@ -25,7 +25,8 @@ global_asm!(include_str!("entrypoint.S"));
 pub extern "C" fn kernel_boot(hart_id: i32, devicetree_ptr: *const c_void) -> ! {
     kdebug!(include_str!("logo_fmt.txt"));
     kdebug!("Booting from hart {}", hart_id);
-    let device_tree = DeviceTree::load_default(devicetree_ptr);
+    let device_tree = unsafe {DeviceTree::load_default(devicetree_ptr)}.unwrap();
+    device_tree.print();
     kdebug!("Initialization successful - entering endless loop");
     loop {}
 }
