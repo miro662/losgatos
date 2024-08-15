@@ -1,7 +1,7 @@
 /// Debug facilities
 use core::fmt;
 
-use crate::{sbi, sync::AtomicMutex};
+use crate::{arch::putc, sync::AtomicMutex};
 
 /// Wrapper over sbi::DebugConsole implementing fmt::Write
 pub struct DebugOutput;
@@ -13,7 +13,7 @@ impl fmt::Write for DebugOutput {
         let _ = DEBUG_MUTEX.lock();
         for byte in s.bytes() {
             unsafe {
-                let _ = sbi::debug_console_write_byte(byte);
+                let _ = putc(byte);
             }
         }
         Ok(())
