@@ -2,8 +2,6 @@
 
 use core::{ffi::CStr, slice};
 
-use crate::debug::kdebug;
-
 use super::node::NodeRef;
 
 #[derive(Debug)]

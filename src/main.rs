@@ -1,19 +1,19 @@
 #![no_std]
 #![no_main]
 
-//! > Copyright 2024 Mirosław Błazej
-//! >
-//! > Licensed under the Apache License, Version 2.0 (the "License");
-//! > you may not use this file except in compliance with the License.
-//! > You may obtain a copy of the License at
-//! >
-//! >     http://www.apache.org/licenses/LICENSE-2.0
-//! >
-//! > Unless required by applicable law or agreed to in writing, software
-//! > distributed under the License is distributed on an "AS IS" BASIS,
-//! > WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//! > See the License for the specific language governing permissions and
-//! > limitations under the License.
+//! Copyright 2024 Mirosław Błazej
+//!
+//! Licensed under the Apache License, Version 2.0 (the "License");
+//! you may not use this file except in compliance with the License.
+//! You may obtain a copy of the License at
+//!
+//!     http://www.apache.org/licenses/LICENSE-2.0
+//!
+//! Unless required by applicable law or agreed to in writing, software
+//! distributed under the License is distributed on an "AS IS" BASIS,
+//! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//! See the License for the specific language governing permissions and
+//! limitations under the License.
 
 mod arch;
 mod debug;
@@ -21,16 +21,16 @@ mod devicetree;
 mod sync;
 
 use core::panic::PanicInfo;
-use debug::kdebug;
+use debug::kdebugln;
 
 fn kernel_main() -> ! {
-    kdebug!("Initialization successful - entering endless loop");
+    kdebugln!("Initialization successful - entering endless loop");
     loop {}
 }
 
 #[panic_handler]
 fn panic_handler(panic: &PanicInfo) -> ! {
-    kdebug!("\nKERNEL PANIC");
-    kdebug!("{}\n", panic);
+    kdebugln!("\nKERNEL PANIC");
+    kdebugln!("{}\n", panic);
     loop {}
 }

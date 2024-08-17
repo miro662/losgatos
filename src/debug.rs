@@ -29,8 +29,19 @@ macro_rules! kdebug {
             use crate::debug::DebugOutput;
             use core::fmt::Write;
             let mut debug_output = DebugOutput;
-            write!(&mut debug_output, "{}\n", format_args!($($arg)*)).unwrap();
+            write!(&mut debug_output, "{}", format_args!($($arg)*)).unwrap();
         }
     }
 }
+macro_rules! kdebugln {
+    ($($arg:tt)*) => {
+        {
+            use crate::debug::DebugOutput;
+            use core::fmt::Write;
+            let mut debug_output = DebugOutput;
+            write!(&mut debug_output, "{}\n", format_args!($($arg)*)).unwrap();
+        }
+    };
+}
 pub(crate) use kdebug;
+pub(crate) use kdebugln;

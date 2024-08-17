@@ -1,8 +1,11 @@
 use core::arch::global_asm;
 
 use crate::{
-    debug::kdebug,
-    devicetree::flattened::{DeviceTreeHeader, FlattenedDeviceTree},
+    debug::{kdebug, kdebugln},
+    devicetree::{
+        flattened::{DeviceTreeHeader, FlattenedDeviceTree},
+        node::NodeRef,
+    },
     kernel_main,
 };
 
@@ -14,8 +17,5 @@ pub extern "C" fn kernel_boot(hart_id: i32, devicetree_ptr: *const DeviceTreeHea
     let flattened_devicetree =
         unsafe { FlattenedDeviceTree::from_ptr(devicetree_ptr) }.expect("Invaild DTB");
     let dt_root = flattened_devicetree.root();
-    for (name, value) in dt_root.properties() {
-        kdebug!("{}: {:?}", name, value);
-    }
     kernel_main()
 }
