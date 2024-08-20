@@ -46,3 +46,9 @@ impl Debug for MemoryRange {
         )
     }
 }
+
+impl From<(usize, usize)> for MemoryRange {
+    fn from((address, size): (usize, usize)) -> Self {
+        Self::from_address_and_size(address, size)
+    }
+}

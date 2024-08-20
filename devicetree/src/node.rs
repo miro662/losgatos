@@ -11,7 +11,6 @@ use super::{
 const FDT_BEGIN_NODE: FdtCell = 0x00000001;
 const FDT_END_NODE: FdtCell = 0x00000002;
 const FDT_PROP: FdtCell = 0x00000003;
-const FDT_NOP: FdtCell = 0x00000004;
 
 /// Reference to a single node inside of a device tree
 pub struct NodeRef<'dt> {
@@ -25,27 +24,30 @@ impl<'dt> NodeRef<'dt> {
     pub(super) fn from_slice(
         fdt: &'dt FlattenedDeviceTree<'dt>,
         slice: &'dt [FdtCell],
-    ) -> NodeRef<'dt> {
+    ) -> Result<NodeRef<'dt>, DeviceTreeError> {
         debug_assert_eq!(slice[0].to_be(), FDT_BEGIN_NODE);
 
         let bytes: &[u8] = unsafe { slice[1..].align_to().1 };
-        let name_cstr = CStr::from_bytes_until_nul(bytes).expect("Invaild name");
+        let name_cstr = CStr::from_bytes_until_nul(bytes)
+            .map_err(|_| DeviceTreeError::CStringConversionFail)?;
         let name_bytes_len = name_cstr.to_bytes().len();
         let name_words_len = name_bytes_len / 4 + 1;
 
-        let name_str = name_cstr.to_str().expect("Invaild UTF-8");
+        let name_str = name_cstr
+            .to_str()
+            .map_err(|source| DeviceTreeError::InvaildUTF8 { source })?;
         let mut name_it = name_str.split('@');
         let name = name_it.next().unwrap_or("");
         let location = name_it.next().and_then(|s| str::parse(s).ok());
 
         let data = &slice[name_words_len + 1..slice.len()];
 
-        NodeRef {
+        Ok(NodeRef {
             fdt,
             name,
             data,
             location,
-        }
+        })
     }
 
     /// Retrieves node's name
@@ -63,21 +65,18 @@ impl<'dt> NodeRef<'dt> {
         self.properties().find(|(n, _)| *n == name).map(|(_, v)| v)
     }
 
+    /// Returns a number of address cells for this node.
+    ///
+    /// If property is not defied, fallback to default value.
     pub fn address_cells(&self) -> Result<usize, DeviceTreeError> {
-        if let Some(property) = self.property("#address-cells") {
-            let value = property.u32()?;
-            Ok(value as usize)
-        } else {
-            Ok(2)
-        }
+        self.cells("#address-cells", 2)
     }
+
+    /// Returns a number of size cells for this node.
+    ///
+    /// If property is not defied, fallback to default value.
     pub fn size_cells(&self) -> Result<usize, DeviceTreeError> {
-        if let Some(property) = self.property("#size-cells") {
-            let value = property.u32()?;
-            Ok(value as usize)
-        } else {
-            Ok(1)
-        }
+        self.cells("#size-cells", 1)
     }
 
     /// Returns an iterator returning a name-value pairs of node's properties
@@ -102,6 +101,15 @@ impl<'dt> NodeRef<'dt> {
         }
 
         NodesIterator { node: self, i }
+    }
+
+    fn cells(&self, name: &str, default: usize) -> Result<usize, DeviceTreeError> {
+        if let Some(property) = self.property(name) {
+            let value = property.u32()?;
+            Ok(value as usize)
+        } else {
+            Ok(default)
+        }
     }
 }
 
@@ -169,10 +177,8 @@ impl<'dt> Iterator for NodesIterator<'dt> {
                     stack -= 1;
                     self.i += 1;
                     if stack == 0 {
-                        return Some(NodeRef::from_slice(
-                            self.node.fdt,
-                            &self.node.data[start..self.i],
-                        ));
+                        return NodeRef::from_slice(self.node.fdt, &self.node.data[start..self.i])
+                            .ok();
                     }
                 }
                 _ => self.i += 1,

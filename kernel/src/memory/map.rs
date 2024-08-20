@@ -1,10 +1,9 @@
 use core::iter::once;
 
+use devicetree::{DeviceTreeError, NodeIterExt, NodeRef};
+
 use crate::{
-    data_structures::CapacityVec,
-    debug::kdebug,
-    devicetree::{error::DeviceTreeError, iter::NodeIterExt, node::NodeRef},
-    memory::static_area::kernel_static_memory_area,
+    data_structures::CapacityVec, debug::kdebug, memory::static_area::kernel_static_memory_area,
 };
 
 use super::MemoryRange;
@@ -25,7 +24,7 @@ impl MemoryMap {
             .take(MAX_MEMORY_MAP_ENTRIES)
             .filter_map(|node: NodeRef| {
                 node.property("reg")
-                    .map(|r| r.reg(address_cells, size_cells))
+                    .map(|r| r.reg(address_cells, size_cells).map(MemoryRange::from))
             })
             .collect::<Result<_, _>>()?;
         memory_areas.sort_unstable_by_key(|a| a.address());
@@ -35,7 +34,7 @@ impl MemoryMap {
         if let Some(reserved) = dt_root.child("reserved-memory") {
             for child in reserved.children().take(32) {
                 if let Some(reg) = child.property("reg") {
-                    let range = reg.reg(address_cells, size_cells)?;
+                    let range = reg.reg(address_cells, size_cells)?.into();
                     reserved_memory_areas.push(range);
                 }
             }

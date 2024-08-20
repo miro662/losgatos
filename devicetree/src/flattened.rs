@@ -2,6 +2,8 @@
 
 use core::{ffi::CStr, slice};
 
+use crate::DeviceTreeError;
+
 use super::node::NodeRef;
 
 pub type FdtCell = u32;
@@ -23,7 +25,8 @@ impl<'dt> FlattenedDeviceTree<'dt> {
     /// If pointer does not point to a device tree header (determined by its magic number)
     ///     or is a null reference, function returns `None`
     ///
-    /// SAFETY: this function assumes that pointer points to a vaild device tree.
+    /// # Safety
+    /// This function assumes that pointer points to a vaild device tree.
     pub unsafe fn from_ptr(ptr: *const FdtHeader) -> Option<FlattenedDeviceTree<'dt>> {
         let header = ptr.as_ref()?;
         if header.is_correct() {
@@ -45,21 +48,24 @@ impl<'dt> FlattenedDeviceTree<'dt> {
             None
         }
     }
-
     /// Returns a reference to a device tree's root node
-    pub fn root(&self) -> NodeRef {
+    pub fn root(&self) -> Result<NodeRef, DeviceTreeError> {
         const FDT_END: FdtCell = 0x00000009;
         debug_assert_eq!(self.structure[self.structure.len() - 1].to_be(), FDT_END);
         NodeRef::from_slice(self, &self.structure[0..self.structure.len() - 2])
     }
 
-    pub(super) fn string(&self, offset: usize) -> Option<&str> {
+    pub(super) fn string(&self, offset: usize) -> Result<&str, DeviceTreeError> {
         CStr::from_bytes_until_nul(&self.strings[offset..])
-            .ok()
-            .and_then(|s| s.to_str().ok())
+            .map_err(|_source| DeviceTreeError::CStringConversionFail)
+            .and_then(|s| {
+                s.to_str()
+                    .map_err(|source| DeviceTreeError::InvaildUTF8 { source })
+            })
     }
 
-    fn header(&self) -> &FdtHeader {
+    /// Returns a reference to a device tree's header
+    pub fn header(&self) -> &FdtHeader {
         self.header
     }
 

@@ -1,7 +1,5 @@
 use core::str;
 
-use crate::memory::MemoryRange;
-
 use super::{error::DeviceTreeError, flattened::FdtCell};
 
 pub struct DeviceTreeValue<'dt>(&'dt [FdtCell]);
@@ -19,13 +17,13 @@ impl<'dt> DeviceTreeValue<'dt> {
         &self,
         address_cells: usize,
         size_cells: usize,
-    ) -> Result<MemoryRange, DeviceTreeError> {
+    ) -> Result<(usize, usize), DeviceTreeError> {
         self.expect_size(address_cells + size_cells)?;
 
         let address = self.read_from_cells(0, address_cells);
         let size = self.read_from_cells(address_cells, size_cells);
 
-        Ok(MemoryRange::from_address_and_size(address, size))
+        Ok((address, size))
     }
 
     fn expect_size(&self, expected: usize) -> Result<(), DeviceTreeError> {
