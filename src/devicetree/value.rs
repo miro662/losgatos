@@ -1,16 +1,53 @@
 use core::str;
 
+use crate::memory::MemoryRange;
+
 use super::{error::DeviceTreeError, flattened::FdtCell};
 
 pub struct DeviceTreeValue<'dt>(&'dt [FdtCell]);
 
 impl<'dt> DeviceTreeValue<'dt> {
     pub fn u32(&self) -> Result<u32, DeviceTreeError> {
-        self.try_into()
+        self.try_into().map(u32::to_be)
     }
 
     pub fn string(&self) -> Result<&str, DeviceTreeError> {
         self.try_into()
+    }
+
+    pub fn reg(
+        &self,
+        address_cells: usize,
+        size_cells: usize,
+    ) -> Result<MemoryRange, DeviceTreeError> {
+        self.expect_size(address_cells + size_cells)?;
+
+        let address = self.read_from_cells(0, address_cells);
+        let size = self.read_from_cells(address_cells, size_cells);
+
+        Ok(MemoryRange::from_address_and_size(address, size))
+    }
+
+    fn expect_size(&self, expected: usize) -> Result<(), DeviceTreeError> {
+        if self.0.len() != expected {
+            Err(DeviceTreeError::InvaildPropertySize {
+                expected,
+                actual: self.0.len(),
+            })
+        } else {
+            Ok(())
+        }
+    }
+
+    fn read_from_cells(&self, start: usize, cells: usize) -> usize {
+        let mut result = 0;
+        for i in start..start + cells {
+            result += self.0[i].to_be() as usize;
+            if i != start + cells - 1 {
+                result <<= 32;
+            }
+        }
+        result
     }
 }
 

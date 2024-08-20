@@ -1,5 +1,6 @@
 SECTIONS {
-    . = SBI_NEXT_ADDRESS; 
+    . = SBI_NEXT_ADDRESS;
+    _start = .;
 
     .text.boot ALIGN(4096): {  
         *(.text.boot)

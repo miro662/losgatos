@@ -7,7 +7,9 @@
 //! <https://devicetree-specification.readthedocs.io/en/stable/introduction.html>
 //!
 //!
+
 pub mod error;
 pub mod flattened;
+pub mod iter;
 pub mod node;
 pub mod value;

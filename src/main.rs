@@ -16,14 +16,18 @@
 //! limitations under the License.
 
 mod arch;
+mod data_structures;
 mod debug;
 mod devicetree;
+mod memory;
 mod sync;
 
 use core::panic::PanicInfo;
 use debug::kdebug;
+use memory::map::MemoryMap;
 
-fn kernel_main() -> ! {
+fn kernel_main(memory_map: MemoryMap) -> ! {
+    memory_map.describe();
     kdebug!("Initialization successful - entering endless loop");
     loop {}
 }

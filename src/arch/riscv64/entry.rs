@@ -1,9 +1,9 @@
 use core::arch::global_asm;
 
 use crate::{
-    debug::kdebug,
     devicetree::flattened::{FdtHeader, FlattenedDeviceTree},
     kernel_main,
+    memory::map::MemoryMap,
 };
 
 global_asm!(include_str!("entrypoint.S"));
@@ -14,12 +14,7 @@ pub extern "C" fn kernel_boot(_hart_id: i32, devicetree_ptr: *const FdtHeader) -
     let flattened_devicetree =
         unsafe { FlattenedDeviceTree::from_ptr(devicetree_ptr) }.expect("Invaild DTB");
     let dt_root = flattened_devicetree.root();
+    let memory_map = MemoryMap::from_device_tree(&dt_root).expect("Cannot read memory map");
 
-    let memory_nodes = dt_root
-        .children()
-        .filter(|n| n.name().starts_with("memory@"));
-    for mnode in memory_nodes {
-        kdebug!("{}", mnode.name());
-    }
-    kernel_main()
+    kernel_main(memory_map)
 }
