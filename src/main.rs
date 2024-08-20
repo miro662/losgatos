@@ -21,16 +21,16 @@ mod devicetree;
 mod sync;
 
 use core::panic::PanicInfo;
-use debug::kdebugln;
+use debug::kdebug;
 
 fn kernel_main() -> ! {
-    kdebugln!("Initialization successful - entering endless loop");
+    kdebug!("Initialization successful - entering endless loop");
     loop {}
 }
 
 #[panic_handler]
 fn panic_handler(panic: &PanicInfo) -> ! {
-    kdebugln!("\nKERNEL PANIC");
-    kdebugln!("{}\n", panic);
+    kdebug!("\nKERNEL PANIC");
+    kdebug!("{}\n", panic);
     loop {}
 }

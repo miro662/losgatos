@@ -6,5 +6,8 @@
 //! Conforms to a devicetree specification as described on
 //! <https://devicetree-specification.readthedocs.io/en/stable/introduction.html>
 //!
+//!
+pub mod error;
 pub mod flattened;
 pub mod node;
+pub mod value;

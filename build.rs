@@ -9,8 +9,8 @@ fn main() {
     }
 
     println!(
-        "cargo:rustc-link-arg=-defsym={}={}",
-        "SBI_NEXT_ADDRESS", sbi_next_address
+        "cargo:rustc-link-arg=-defsym=SBI_NEXT_ADDRESS={}",
+        sbi_next_address
     );
     println!("cargo:rustc-link-arg=-Tsrc/arch/riscv64/linker.ld");
 }

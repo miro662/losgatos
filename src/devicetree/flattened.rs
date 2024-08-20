@@ -4,11 +4,13 @@ use core::{ffi::CStr, slice};
 
 use super::node::NodeRef;
 
+pub type FdtCell = u32;
+
 #[derive(Debug)]
 /// A structure containing references to elements of a device tree
 pub struct FlattenedDeviceTree<'dt> {
-    header: &'dt DeviceTreeHeader,
-    structure: &'dt [u32],
+    header: &'dt FdtHeader,
+    structure: &'dt [FdtCell],
     strings: &'dt [u8],
 }
 
@@ -22,12 +24,12 @@ impl<'dt> FlattenedDeviceTree<'dt> {
     ///     or is a null reference, function returns `None`
     ///
     /// SAFETY: this function assumes that pointer points to a vaild device tree.
-    pub unsafe fn from_ptr(ptr: *const DeviceTreeHeader) -> Option<FlattenedDeviceTree<'dt>> {
+    pub unsafe fn from_ptr(ptr: *const FdtHeader) -> Option<FlattenedDeviceTree<'dt>> {
         let header = ptr.as_ref()?;
         if header.is_correct() {
             let fdt = FlattenedDeviceTree {
                 header,
-                structure: &Self::offset_and_size_to_slice(
+                structure: Self::offset_and_size_to_slice(
                     ptr,
                     header.off_dt_struct(),
                     header.size_dt_struct(),
@@ -46,9 +48,9 @@ impl<'dt> FlattenedDeviceTree<'dt> {
 
     /// Returns a reference to a device tree's root node
     pub fn root(&self) -> NodeRef {
-        const FDT_END: u32 = 0x00000009;
+        const FDT_END: FdtCell = 0x00000009;
         debug_assert_eq!(self.structure[self.structure.len() - 1].to_be(), FDT_END);
-        NodeRef::from_slice(&self, &self.structure[0..self.structure.len() - 2])
+        NodeRef::from_slice(self, &self.structure[0..self.structure.len() - 2])
     }
 
     pub(super) fn string(&self, offset: usize) -> Option<&str> {
@@ -57,8 +59,8 @@ impl<'dt> FlattenedDeviceTree<'dt> {
             .and_then(|s| s.to_str().ok())
     }
 
-    fn header(&self) -> &DeviceTreeHeader {
-        &self.header
+    fn header(&self) -> &FdtHeader {
+        self.header
     }
 
     unsafe fn offset_and_size_to_slice<'a, A, T>(ptr: *const A, offset: u32, size: u32) -> &'a [T] {
@@ -70,7 +72,7 @@ impl<'dt> FlattenedDeviceTree<'dt> {
 /// Device tree header, as defined in a devicetree standard
 #[repr(C)]
 #[derive(Debug)]
-pub struct DeviceTreeHeader {
+pub struct FdtHeader {
     magic: u32,
     totalsize: u32,
     off_dt_struct: u32,
@@ -83,7 +85,7 @@ pub struct DeviceTreeHeader {
     size_dt_struct: u32,
 }
 
-impl DeviceTreeHeader {
+impl FdtHeader {
     const MAGIC_NUMBER: u32 = 0xd00dfeed;
 
     /// Magic number, in host byte order
