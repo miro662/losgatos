@@ -1,7 +1,7 @@
 pub mod map;
 pub mod static_area;
 
-use core::{fmt::Debug, ptr::addr_of};
+use core::fmt::Debug;
 
 #[derive(Clone, Copy)]
 pub struct MemoryRange {

@@ -74,7 +74,7 @@ impl<T: Sized, const CAPACITY: usize> Index<usize> for CapacityVec<T, CAPACITY> 
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
-        if index >= self.len {
+        if index >= self.len() {
             panic!("{} out of bounds (len = {})", index, self.len)
         }
         &self.data[index]
@@ -83,7 +83,7 @@ impl<T: Sized, const CAPACITY: usize> Index<usize> for CapacityVec<T, CAPACITY> 
 
 impl<T: Sized, const CAPACITY: usize> IndexMut<usize> for CapacityVec<T, CAPACITY> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        if index >= self.len {
+        if index >= self.len() {
             panic!("{} out of bounds (len = {})", index, self.len)
         }
         &mut self.data[index]
