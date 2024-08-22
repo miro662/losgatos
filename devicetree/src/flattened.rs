@@ -2,7 +2,7 @@
 
 use core::{ffi::CStr, slice};
 
-use crate::DeviceTreeError;
+use crate::{node::CellSizes, DeviceTreeError};
 
 use super::node::NodeRef;
 
@@ -52,7 +52,11 @@ impl<'dt> FlattenedDeviceTree<'dt> {
     pub fn root(&self) -> Result<NodeRef, DeviceTreeError> {
         const FDT_END: FdtCell = 0x00000009;
         debug_assert_eq!(self.structure[self.structure.len() - 1].to_be(), FDT_END);
-        NodeRef::from_slice(self, &self.structure[0..self.structure.len() - 2])
+        NodeRef::from_slice(
+            self,
+            &self.structure[0..self.structure.len() - 2],
+            CellSizes::default(),
+        )
     }
 
     pub(super) fn string(&self, offset: usize) -> Result<&str, DeviceTreeError> {

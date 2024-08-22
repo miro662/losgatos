@@ -16,15 +16,11 @@ pub struct MemoryMap {
 
 impl MemoryMap {
     pub fn from_device_tree(dt_root: &NodeRef) -> Result<MemoryMap, DeviceTreeError> {
-        let address_cells = dt_root.address_cells()?;
-        let size_cells = dt_root.size_cells()?;
-
         let memory_nodes = dt_root.children().named("memory");
         let mut memory_areas: CapacityVec<MemoryRange, MAX_MEMORY_MAP_ENTRIES> = memory_nodes
             .take(MAX_MEMORY_MAP_ENTRIES)
             .filter_map(|node: NodeRef| {
-                node.property("reg")
-                    .map(|r| r.reg(address_cells, size_cells).map(MemoryRange::from))
+                node.property("reg").map(|r| r.reg().map(MemoryRange::from))
             })
             .collect::<Result<_, _>>()?;
         memory_areas.sort_unstable_by_key(|a| a.address());
@@ -34,7 +30,7 @@ impl MemoryMap {
         if let Some(reserved) = dt_root.child("reserved-memory") {
             for child in reserved.children().take(32) {
                 if let Some(reg) = child.property("reg") {
-                    let range = reg.reg(address_cells, size_cells)?.into();
+                    let range = reg.reg()?.into();
                     reserved_memory_areas.push(range);
                 }
             }

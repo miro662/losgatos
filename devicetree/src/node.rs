@@ -18,12 +18,14 @@ pub struct NodeRef<'dt> {
     name: &'dt str,
     location: Option<usize>,
     data: &'dt [FdtCell],
+    cell_sizes: CellSizes,
 }
 
 impl<'dt> NodeRef<'dt> {
     pub(super) fn from_slice(
         fdt: &'dt FlattenedDeviceTree<'dt>,
         slice: &'dt [FdtCell],
+        cell_sizes: CellSizes,
     ) -> Result<NodeRef<'dt>, DeviceTreeError> {
         debug_assert_eq!(slice[0].to_be(), FDT_BEGIN_NODE);
 
@@ -42,12 +44,16 @@ impl<'dt> NodeRef<'dt> {
 
         let data = &slice[name_words_len + 1..slice.len()];
 
-        Ok(NodeRef {
+        let mut node_ref = NodeRef {
             fdt,
             name,
             data,
             location,
-        })
+            cell_sizes,
+        };
+        node_ref.cell_sizes = CellSizes::for_node(&node_ref, &node_ref.cell_sizes)?;
+
+        Ok(node_ref)
     }
 
     /// Retrieves node's name
@@ -63,20 +69,6 @@ impl<'dt> NodeRef<'dt> {
     /// If node has given property, returns it
     pub fn property(&self, name: &str) -> Option<DeviceTreeValue> {
         self.properties().find(|(n, _)| *n == name).map(|(_, v)| v)
-    }
-
-    /// Returns a number of address cells for this node.
-    ///
-    /// If property is not defied, fallback to default value.
-    pub fn address_cells(&self) -> Result<usize, DeviceTreeError> {
-        self.cells("#address-cells", 2)
-    }
-
-    /// Returns a number of size cells for this node.
-    ///
-    /// If property is not defied, fallback to default value.
-    pub fn size_cells(&self) -> Result<usize, DeviceTreeError> {
-        self.cells("#size-cells", 1)
     }
 
     /// Returns an iterator returning a name-value pairs of node's properties
@@ -103,10 +95,10 @@ impl<'dt> NodeRef<'dt> {
         NodesIterator { node: self, i }
     }
 
-    fn cells(&self, name: &str, default: usize) -> Result<usize, DeviceTreeError> {
+    fn cells(&self, name: &str, default: u32) -> Result<u32, DeviceTreeError> {
         if let Some(property) = self.property(name) {
             let value = property.u32()?;
-            Ok(value as usize)
+            Ok(value)
         } else {
             Ok(default)
         }
@@ -135,7 +127,10 @@ impl<'dt> Iterator for PropertiesIterator<'dt> {
                 let value = &self.node.data[self.i + 3..self.i + 3 + fdt_cell_len];
 
                 self.i += 3 + fdt_cell_len;
-                return Some((name, value.into()));
+                return Some((
+                    name,
+                    DeviceTreeValue::wrap_cells(value, &self.node.cell_sizes),
+                ));
             } else if self.node.data[self.i].to_be() == FDT_BEGIN_NODE {
                 break;
             } else {
@@ -177,8 +172,12 @@ impl<'dt> Iterator for NodesIterator<'dt> {
                     stack -= 1;
                     self.i += 1;
                     if stack == 0 {
-                        return NodeRef::from_slice(self.node.fdt, &self.node.data[start..self.i])
-                            .ok();
+                        return NodeRef::from_slice(
+                            self.node.fdt,
+                            &self.node.data[start..self.i],
+                            self.node.cell_sizes,
+                        )
+                        .ok();
                     }
                 }
                 _ => self.i += 1,
@@ -186,5 +185,37 @@ impl<'dt> Iterator for NodesIterator<'dt> {
         }
 
         None
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct CellSizes {
+    address: u32,
+    size: u32,
+}
+
+impl CellSizes {
+    pub(crate) fn address(&self) -> u32 {
+        self.address
+    }
+
+    pub(crate) fn size(&self) -> u32 {
+        self.size
+    }
+
+    fn for_node(node: &NodeRef, defaults: &CellSizes) -> Result<CellSizes, DeviceTreeError> {
+        Ok(CellSizes {
+            address: node.cells("#address-cells", defaults.address)?,
+            size: node.cells("#size-cells", defaults.size)?,
+        })
+    }
+}
+
+impl Default for CellSizes {
+    fn default() -> Self {
+        Self {
+            address: 2,
+            size: 1,
+        }
     }
 }
