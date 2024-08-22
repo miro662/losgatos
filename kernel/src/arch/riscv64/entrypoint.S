@@ -3,6 +3,9 @@
 /// Sets processor in RISC-V ABI compliant state and starts Rust kernel code
 .global entrypoint
 entrypoint:
+    // disable interrupts
+    csrw sie, zero
+
     // reset memory mapping
     csrw satp, zero
 

@@ -7,6 +7,7 @@ mod debug;
 mod memory;
 mod sync;
 
+use arch::wfi;
 use core::panic::PanicInfo;
 use debug::kdebug;
 use memory::map::MemoryMap;
@@ -14,8 +15,7 @@ use memory::map::MemoryMap;
 fn kernel_main(memory_map: MemoryMap) -> ! {
     memory_map.describe();
     kdebug!("Initialization successful - entering endless loop");
-    #[allow(clippy::empty_loop)]
-    loop {}
+    wfi()
 }
 
 #[panic_handler]
