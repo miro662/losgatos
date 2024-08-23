@@ -24,6 +24,9 @@ impl MemoryMap {
             })
             .collect::<Result<_, _>>()?;
         memory_areas.sort_unstable_by_key(|a| a.address());
+        for ma in memory_areas.iter() {
+            kdebug!("MA: {:?}", ma);
+        }
 
         let kernel_memory = kernel_static_memory_area();
         let mut reserved_memory_areas: CapacityVec<MemoryRange, 32> = once(kernel_memory).collect();
@@ -34,6 +37,10 @@ impl MemoryMap {
                     reserved_memory_areas.push(range);
                 }
             }
+        }
+        reserved_memory_areas.sort_unstable_by_key(|a| a.address());
+        for rma in reserved_memory_areas.iter() {
+            kdebug!("RMA: {:?}", rma);
         }
 
         let mut available_memory_areas: CapacityVec<MemoryRange, MAX_MEMORY_MAP_ENTRIES> =

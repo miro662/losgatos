@@ -1,7 +1,11 @@
 use core::fmt::Debug;
+use core::mem::transmute;
+use core::ptr;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::arch::PAGE_SIZE;
+use crate::debug::kdebug;
+use crate::sync::AtomicMutex;
 
 use super::map::MemoryMap;
 
@@ -16,57 +20,67 @@ impl Debug for PhysicalAddr {
 }
 
 pub struct PhysicalMemoryManager {
-    memory_map: MemoryMap,
-    region: usize,
-    next_page: AtomicUsize,
+    total_pages: usize,
+    first: AtomicMutex<usize>,
+    last: AtomicMutex<usize>,
 }
 
 impl PhysicalMemoryManager {
     /// # Safety
-    /// * Function assumes that all adresses
-    pub unsafe fn new(memory_map: MemoryMap) -> PhysicalMemoryManager {
-        let first_addr = memory_map.available_areas().first().unwrap().address();
+    /// * Function assumes that all adresses passed in `memory_map` are vaild and not used in any other way
+    /// * Identity mapping is assumed
+    pub unsafe fn new(memory_map: &MemoryMap) -> PhysicalMemoryManager {
+        let (mut first_page, mut last_page) = (0, 0);
+        let mut total_pages = 0;
+        for (i, area) in memory_map.available_areas().iter().enumerate() {
+            let aa = area.address();
+            let mut page = if aa % PAGE_SIZE == 0 {
+                aa
+            } else {
+                ((aa / PAGE_SIZE) + 1) * PAGE_SIZE
+            };
+            if i == 0 {
+                first_page = page;
+            }
+
+            while page <= area.end_address() {
+                unsafe {
+                    let page_ptr: *mut usize = transmute(page);
+                    *page_ptr = last_page;
+                }
+                last_page = page;
+                page += PAGE_SIZE;
+                total_pages += 1;
+            }
+        }
+
         PhysicalMemoryManager {
-            memory_map,
-            region: 0,
-            next_page: AtomicUsize::new(first_addr),
+            total_pages,
+            first: AtomicMutex::new(last_page),
+            last: AtomicMutex::new(first_page),
         }
     }
 
     pub fn request_page(&self) -> PhysicalAddr {
-        let find_region = |addr| {
-            self.memory_map
-                .available_areas()
-                .iter()
-                .enumerate()
-                .find(|(_, r)| r.contains(addr))
-                .map(|(i, _)| i)
+        let mut first = self.first.lock();
+        let page = *first;
+        *first = unsafe {
+            let page_ptr: *const usize = transmute(page);
+            *page_ptr
         };
-
-        let page = 'next_page: loop {
-            let page = self.next_page.load(Ordering::Acquire);
-            let next_page = page + PAGE_SIZE;
-
-            let current_region = find_region(page).expect("Previous address has to be vaild");
-            let next_page = if let Some(_) = find_region(next_page) {
-                next_page
-            } else {
-                self.memory_map.available_areas()[current_region + 1].address()
-            };
-
-            let exchange_result = self.next_page.compare_exchange(
-                page,
-                next_page,
-                Ordering::Release,
-                Ordering::Relaxed,
-            );
-            match exchange_result {
-                Ok(page) => break 'next_page page,
-                Err(_) => {}
-            }
-        };
-        PhysicalAddr(page)
+        PhysicalAddr(*first)
     }
 
-    pub fn free_page(&self, _page: PhysicalAddr) {}
+    pub fn free_page(&self, page: PhysicalAddr) {
+        let mut last = self.last.lock();
+        unsafe {
+            let last_ptr: *mut usize = transmute(*last);
+            *last_ptr = page.0;
+        }
+        *last = page.0;
+    }
+
+    pub fn total_pages(&self) -> usize {
+        self.total_pages
+    }
 }
