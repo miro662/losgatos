@@ -10,11 +10,16 @@ mod sync;
 use arch::{wfi, PAGE_SIZE};
 use core::panic::PanicInfo;
 use debug::kdebug;
-use memory::{map::MemoryMap, physical::PhysicalMemoryManager};
+use memory::{
+    map::MemoryMap,
+    physical::{prepare_pma_buffer, PhysicalMemoryManager},
+};
 
-fn kernel_main(memory_map: MemoryMap) -> ! {
+fn kernel_main(mut memory_map: MemoryMap) -> ! {
     memory_map.describe();
-    let mut pma = unsafe { PhysicalMemoryManager::new(&memory_map) };
+    let pma_buf = unsafe { prepare_pma_buffer(&mut memory_map) };
+    memory_map.describe();
+    let mut pma = PhysicalMemoryManager::new(&memory_map, pma_buf);
     kdebug!(
         "Initialized physical memory manager - {} pages ({} B) available",
         pma.total_pages(),

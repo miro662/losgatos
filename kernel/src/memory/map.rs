@@ -96,6 +96,10 @@ impl MemoryMap {
         &self.available_memory_areas
     }
 
+    pub fn available_areas_mut(&mut self) -> &mut [MemoryRange] {
+        &mut self.available_memory_areas
+    }
+
     pub fn is_page_aligned(&self) -> bool {
         self.available_areas()
             .iter()
