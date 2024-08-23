@@ -8,13 +8,17 @@ mod memory;
 mod sync;
 
 use arch::wfi;
-use core::panic::PanicInfo;
+use core::{mem, panic::PanicInfo};
 use debug::kdebug;
-use memory::map::MemoryMap;
+use memory::{map::MemoryMap, physical::PhysicalMemoryManager};
 
 fn kernel_main(memory_map: MemoryMap) -> ! {
     memory_map.describe();
-    kdebug!("Initialization successful - entering endless loop");
+    let pma = unsafe { PhysicalMemoryManager::new(memory_map) };
+    for _ in 0..0x201 {
+        let ppage = pma.request_page();
+        kdebug!("{:?}", ppage);
+    }
     wfi()
 }
 

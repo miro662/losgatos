@@ -1,7 +1,10 @@
 pub mod map;
+pub mod physical;
 pub mod static_area;
 
 use core::fmt::Debug;
+
+use physical::PhysicalAddr;
 
 #[derive(Clone, Copy)]
 pub struct MemoryRange {
@@ -32,6 +35,10 @@ impl MemoryRange {
 
     pub fn size(&self) -> usize {
         self.size
+    }
+
+    pub fn contains(&self, addr: usize) -> bool {
+        self.address() <= addr && self.end_address() >= addr
     }
 }
 
