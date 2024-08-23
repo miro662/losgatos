@@ -24,21 +24,15 @@ pub struct PhysicalMemoryManager {
 }
 
 impl PhysicalMemoryManager {
-    /// # Safety
-    /// * Function assumes that all adresses passed in `memory_map` are always vaild and not used in any other way
-    /// * Identity mapping is assumed during calling this function
     pub fn new(
         memory_map: &MemoryMap,
         buffer: &'static mut [PhysicalAddr],
     ) -> PhysicalMemoryManager {
-        if !memory_map.is_page_aligned() {
-            panic!("Memory map is not page-aligned!");
-        }
-
         let mut total_pages = 0;
         for range in memory_map.available_areas() {
-            let mut page = range.address();
-            while page <= range.end_address() {
+            let aligned_range = range.aligned_subset(PAGE_SIZE);
+            let mut page = aligned_range.address();
+            while page <= aligned_range.end_address() {
                 buffer[total_pages] = PhysicalAddr(page);
                 page += PAGE_SIZE;
                 total_pages += 1;
@@ -63,7 +57,7 @@ impl PhysicalMemoryManager {
     }
 
     pub fn free_page(&mut self, page: PhysicalAddr) {
-        self.buffer[self.last] = page;
+        self.buffer[self.last % self.buffer.len()] = page;
         self.last = (self.last + 1) % self.buffer.len();
     }
 
@@ -72,18 +66,19 @@ impl PhysicalMemoryManager {
     }
 }
 
-fn page_align(val: usize) -> usize {
-    if val % PAGE_SIZE == 0 {
-        val
-    } else {
-        ((val / PAGE_SIZE) + 1) * PAGE_SIZE
+impl Debug for PhysicalMemoryManager {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("PhysicalMemoryManager")
+            .field("total_pages", &self.total_pages)
+            .field("first", &self.first)
+            .field("last", &self.last)
+            .finish()
     }
 }
 
 pub unsafe fn prepare_pma_buffer(memory_map: &mut MemoryMap) -> &'static mut [PhysicalAddr] {
-    if !memory_map.is_page_aligned() {
-        panic!("Memory map is not page-aligned!");
-    }
+    memory_map.page_align();
+
     let total_pages = memory_map.total_size() / PAGE_SIZE;
 
     let size = page_align(total_pages * size_of::<PhysicalAddr>());
@@ -101,5 +96,13 @@ pub unsafe fn prepare_pma_buffer(memory_map: &mut MemoryMap) -> &'static mut [Ph
         ptr::slice_from_raw_parts_mut(address as *mut PhysicalAddr, total_pages)
             .as_mut()
             .expect("Invaild memory area")
+    }
+}
+
+fn page_align(val: usize) -> usize {
+    if val % PAGE_SIZE == 0 {
+        val
+    } else {
+        ((val / PAGE_SIZE) + 1) * PAGE_SIZE
     }
 }

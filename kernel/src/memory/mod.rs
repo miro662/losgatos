@@ -37,10 +37,20 @@ impl MemoryRange {
         self.size
     }
 
-    pub fn is_page_aligned(&self) -> bool {
-        let start_aligned = self.address() % PAGE_SIZE == 0;
-        let end_aligned = self.end_address() % PAGE_SIZE == PAGE_SIZE - 1;
-        start_aligned && end_aligned
+    pub fn aligned_subset(&self, alignment: usize) -> MemoryRange {
+        let address = if self.address % alignment != 0 {
+            ((self.address % alignment) + 1) * alignment
+        } else {
+            self.address
+        };
+
+        let size = if self.size % alignment != 0 {
+            (self.size % alignment) * alignment
+        } else {
+            self.size
+        };
+
+        MemoryRange::from_address_and_size(address, size)
     }
 }
 

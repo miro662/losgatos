@@ -3,7 +3,8 @@ use core::iter::once;
 use devicetree::{DeviceTreeError, NodeIterExt, NodeRef};
 
 use crate::{
-    data_structures::CapacityVec, debug::kdebug, memory::static_area::kernel_static_memory_area,
+    arch::PAGE_SIZE, data_structures::CapacityVec, debug::kdebug,
+    memory::static_area::kernel_static_memory_area,
 };
 
 use super::MemoryRange;
@@ -80,6 +81,7 @@ impl MemoryMap {
         })
     }
 
+    #[allow(unused)]
     pub fn describe(&self) {
         kdebug!("Available memory areas:");
         for area in self.available_areas() {
@@ -100,9 +102,9 @@ impl MemoryMap {
         &mut self.available_memory_areas
     }
 
-    pub fn is_page_aligned(&self) -> bool {
-        self.available_areas()
-            .iter()
-            .all(MemoryRange::is_page_aligned)
+    pub fn page_align(&mut self) {
+        for a in self.available_areas_mut().iter_mut() {
+            *a = a.aligned_subset(PAGE_SIZE)
+        }
     }
 }
