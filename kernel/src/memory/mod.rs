@@ -4,7 +4,7 @@ pub mod static_area;
 
 use core::fmt::Debug;
 
-use physical::PhysicalAddr;
+use crate::arch::PAGE_SIZE;
 
 #[derive(Clone, Copy)]
 pub struct MemoryRange {
@@ -37,8 +37,10 @@ impl MemoryRange {
         self.size
     }
 
-    pub fn contains(&self, addr: usize) -> bool {
-        self.address() <= addr && self.end_address() >= addr
+    pub fn is_page_aligned(&self) -> bool {
+        let start_aligned = self.address() % PAGE_SIZE == 0;
+        let end_aligned = self.end_address() % PAGE_SIZE == PAGE_SIZE - 1;
+        start_aligned && end_aligned
     }
 }
 

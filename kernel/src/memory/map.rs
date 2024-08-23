@@ -95,4 +95,10 @@ impl MemoryMap {
     pub fn available_areas(&self) -> &[MemoryRange] {
         &self.available_memory_areas
     }
+
+    pub fn is_page_aligned(&self) -> bool {
+        self.available_areas()
+            .iter()
+            .all(MemoryRange::is_page_aligned)
+    }
 }

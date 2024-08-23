@@ -1,13 +1,10 @@
 use core::fmt::Debug;
-use core::mem::transmute;
 use core::ptr;
-use core::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::arch::PAGE_SIZE;
-use crate::debug::kdebug;
-use crate::sync::AtomicMutex;
 
 use super::map::MemoryMap;
+use super::MemoryRange;
 
 /// Representation of a phyisical memory address
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -20,67 +17,95 @@ impl Debug for PhysicalAddr {
 }
 
 pub struct PhysicalMemoryManager {
+    buffer: &'static mut [PhysicalAddr],
     total_pages: usize,
-    first: AtomicMutex<usize>,
-    last: AtomicMutex<usize>,
+    first: usize,
+    last: usize,
 }
 
 impl PhysicalMemoryManager {
     /// # Safety
-    /// * Function assumes that all adresses passed in `memory_map` are vaild and not used in any other way
-    /// * Identity mapping is assumed
+    /// * Function assumes that all adresses passed in `memory_map` are always vaild and not used in any other way
+    /// * Identity mapping is assumed during calling this function
     pub unsafe fn new(memory_map: &MemoryMap) -> PhysicalMemoryManager {
-        let (mut first_page, mut last_page) = (0, 0);
-        let mut total_pages = 0;
-        for (i, area) in memory_map.available_areas().iter().enumerate() {
-            let aa = area.address();
-            let mut page = if aa % PAGE_SIZE == 0 {
-                aa
-            } else {
-                ((aa / PAGE_SIZE) + 1) * PAGE_SIZE
-            };
-            if i == 0 {
-                first_page = page;
-            }
+        if !memory_map.is_page_aligned() {
+            panic!("Memory map is not page-aligned!");
+        }
+        let total_pages = memory_map.total_size() / PAGE_SIZE;
 
-            while page <= area.end_address() {
-                unsafe {
-                    let page_ptr: *mut usize = transmute(page);
-                    *page_ptr = last_page;
-                }
-                last_page = page;
+        // find a memory range that can hold a buffer
+        let buffer_size_bytes = total_pages * size_of::<PhysicalAddr>();
+        let buffer_size_pa = page_align(buffer_size_bytes);
+        let (buffer_range_idx, buffer_range) = memory_map
+            .available_areas()
+            .iter()
+            .enumerate()
+            .find(|(_, r)| r.size() >= buffer_size_pa)
+            .expect("Cannot find memory are that can hold pma buffer");
+
+        // safety: this memory is not used otherwise, and is of size >= sizeof(usize) * total_pages
+        // and we assume that they are always valid
+        let buffer = unsafe {
+            ptr::slice_from_raw_parts_mut(buffer_range.address() as *mut PhysicalAddr, total_pages)
+                .as_mut()
+                .expect("Invaild memory area")
+        };
+
+        let mut total_pages = 0;
+        let mut dump_pages = |range: &MemoryRange| {
+            let mut page = range.address();
+            while page <= range.end_address() {
+                buffer[total_pages] = PhysicalAddr(page);
                 page += PAGE_SIZE;
                 total_pages += 1;
+            }
+        };
+
+        // dump pages that are left after creating buffer
+        let rest_of_buffer_range = MemoryRange::from_start_and_end(
+            buffer_range.address() + buffer_size_pa,
+            buffer_range.end_address(),
+        );
+        dump_pages(&rest_of_buffer_range);
+
+        // dump pages in other areas
+        for (i, range) in memory_map.available_areas().iter().enumerate() {
+            if i != buffer_range_idx {
+                dump_pages(range)
             }
         }
 
         PhysicalMemoryManager {
+            buffer,
             total_pages,
-            first: AtomicMutex::new(last_page),
-            last: AtomicMutex::new(first_page),
+            first: 0,
+            last: total_pages,
         }
     }
 
-    pub fn request_page(&self) -> PhysicalAddr {
-        let mut first = self.first.lock();
-        let page = *first;
-        *first = unsafe {
-            let page_ptr: *const usize = transmute(page);
-            *page_ptr
-        };
-        PhysicalAddr(*first)
+    pub fn request_page(&mut self) -> Option<PhysicalAddr> {
+        if self.first == self.last {
+            return None;
+        }
+        let area = self.buffer[self.first];
+        self.first = (self.first + 1) % self.buffer.len();
+        Some(area)
     }
 
-    pub fn free_page(&self, page: PhysicalAddr) {
-        let mut last = self.last.lock();
-        unsafe {
-            let last_ptr: *mut usize = transmute(*last);
-            *last_ptr = page.0;
-        }
-        *last = page.0;
+    pub fn free_page(&mut self, page: PhysicalAddr) {
+        self.buffer[self.last] = page;
+        self.last = (self.last + 1) % self.buffer.len();
     }
 
     pub fn total_pages(&self) -> usize {
         self.total_pages
+    }
+}
+
+fn page_align(val: usize) -> usize {
+    if val % PAGE_SIZE == 0 {
+        val
+    } else {
+        ((val / PAGE_SIZE) + 1) * PAGE_SIZE
     }
 }
