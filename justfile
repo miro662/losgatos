@@ -12,7 +12,7 @@ cargo_build_flag := if mode == "release" { "--release" } else { "" }
 build:
     cargo build {{ cargo_build_flag }}
 
-QEMU_MACHINE_ARGS := '-M virt -serial mon:stdio -kernel -nographic -smp 2'
+QEMU_MACHINE_ARGS := '-M virt -serial mon:stdio -nographic -smp 2'
 QEMU_IMAGE := '-kernel target/riscv64gc-unknown-none-elf/' + mode + '/kernel'
 qemu_call := qemu + " " + QEMU_MACHINE_ARGS + " " + QEMU_IMAGE
 

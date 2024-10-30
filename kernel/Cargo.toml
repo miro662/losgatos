@@ -9,6 +9,7 @@ license = "Apache-2.0"
 [dependencies]
 snafu = { version = "0.8.4", default-features = false, features = [] }
 devicetree = { path = "../devicetree" }
+core-lib = { path = "../core-lib" }
 
 [features]
 platform_virt = []

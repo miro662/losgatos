@@ -1,6 +1,8 @@
 use core::{fmt, marker::PhantomData};
 
-use crate::{arch::Arch, sync::AtomicMutex};
+use core_lib::sync::AtomicMutex;
+
+use crate::arch::Arch;
 
 pub struct DebugOutput<A: Arch> {
     arch: PhantomData<A>,

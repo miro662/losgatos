@@ -1,3 +1,5 @@
+//! Synchronization primitives using atomic values
+
 use core::{
     mem::transmute,
     ops::{Deref, DerefMut},

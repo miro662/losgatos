@@ -2,24 +2,20 @@
 #![no_main]
 
 mod arch;
-mod data_structures;
 mod debug;
-mod memory;
-mod sync;
 
 use arch::Arch;
 use core::fmt::Write;
 use core::panic::PanicInfo;
 use debug::DebugOutput;
-use memory::map::MemoryMap;
 
-fn kernel_main<A: Arch>(mut memory_map: MemoryMap) -> ! {
+fn kernel_main<A: Arch>() -> ! {
     let dout = DebugOutput::<A>::new();
-    writeln!(&dout, "xD");
+    writeln!(&dout, "Hello kernel!").unwrap();
     A::wfi();
 }
 
 #[panic_handler]
-fn panic_handler(panic: &PanicInfo) -> ! {
+fn panic_handler(_panic: &PanicInfo) -> ! {
     loop {}
 }

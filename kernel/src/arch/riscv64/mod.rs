@@ -1,11 +1,10 @@
+mod csr;
 mod entry;
 mod sbi;
 
 use core::arch::asm;
 
 use super::Arch;
-
-pub const PAGE_SIZE: usize = 4096;
 
 struct Riscv64;
 
@@ -20,6 +19,6 @@ unsafe impl Arch for Riscv64 {
     }
 
     unsafe fn putc(byte: u8) {
-        let _ = sbi::debug_console_write_byte(byte);
+        let _ = sbi::debug_console::write_byte(byte);
     }
 }
