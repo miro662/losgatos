@@ -3,8 +3,7 @@ use core::iter::once;
 use devicetree::{DeviceTreeError, NodeIterExt, NodeRef};
 
 use crate::{
-    arch::PAGE_SIZE, data_structures::CapacityVec, debug::kdebug,
-    memory::static_area::kernel_static_memory_area,
+    arch::PAGE_SIZE, data_structures::CapacityVec, memory::static_area::kernel_static_memory_area,
 };
 
 use super::MemoryRange;
@@ -25,9 +24,6 @@ impl MemoryMap {
             })
             .collect::<Result<_, _>>()?;
         memory_areas.sort_unstable_by_key(|a| a.address());
-        for ma in memory_areas.iter() {
-            kdebug!("MA: {:?}", ma);
-        }
 
         let kernel_memory = kernel_static_memory_area();
         let mut reserved_memory_areas: CapacityVec<MemoryRange, 32> = once(kernel_memory).collect();
@@ -40,9 +36,6 @@ impl MemoryMap {
             }
         }
         reserved_memory_areas.sort_unstable_by_key(|a| a.address());
-        for rma in reserved_memory_areas.iter() {
-            kdebug!("RMA: {:?}", rma);
-        }
 
         let mut available_memory_areas: CapacityVec<MemoryRange, MAX_MEMORY_MAP_ENTRIES> =
             CapacityVec::empty();
@@ -82,13 +75,7 @@ impl MemoryMap {
     }
 
     #[allow(unused)]
-    pub fn describe(&self) {
-        kdebug!("Available memory areas:");
-        for area in self.available_areas() {
-            kdebug!(" - {:?}", area);
-        }
-        kdebug!("Total available size: {} bytes", self.total_size())
-    }
+    pub fn describe(&self) {}
 
     pub fn total_size(&self) -> usize {
         self.available_areas().iter().map(|a| a.size()).sum()

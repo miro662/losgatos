@@ -1,36 +1,29 @@
-/// Debug facilities
-use core::fmt;
+use core::{fmt, marker::PhantomData};
 
-use crate::{arch::putc, sync::AtomicMutex};
+use crate::{arch::Arch, sync::AtomicMutex};
 
-/// Wrapper over sbi::DebugConsole implementing fmt::Write
-pub struct DebugOutput;
+pub struct DebugOutput<A: Arch> {
+    arch: PhantomData<A>,
+    mutex: AtomicMutex<()>,
+}
 
-static DEBUG_MUTEX: AtomicMutex<()> = AtomicMutex::new(());
+impl<A: Arch> DebugOutput<A> {
+    pub fn new() -> DebugOutput<A> {
+        DebugOutput {
+            arch: PhantomData::default(),
+            mutex: AtomicMutex::new(()),
+        }
+    }
+}
 
-impl fmt::Write for DebugOutput {
+impl<'a, A: Arch> fmt::Write for &'a DebugOutput<A> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        let _ = DEBUG_MUTEX.lock();
-        for byte in s.bytes() {
+        let _ = self.mutex.lock();
+        for byte in s.as_bytes() {
             unsafe {
-                putc(byte);
+                A::putc(*byte);
             }
         }
         Ok(())
     }
 }
-
-/// Writes a formatted string onto a SBI debug console (if available).
-///
-/// Accepts the same arguments as std::fmt::println!
-macro_rules! kdebug {
-    ($($arg:tt)*) => {
-        {
-            use crate::debug::DebugOutput;
-            use core::fmt::Write;
-            let mut debug_output = DebugOutput;
-            write!(&mut debug_output, "{}\n", format_args!($($arg)*)).unwrap();
-        }
-    }
-}
-pub(crate) use kdebug;

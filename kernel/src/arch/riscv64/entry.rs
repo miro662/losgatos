@@ -4,6 +4,8 @@ use devicetree::{FdtHeader, FlattenedDeviceTree};
 
 use crate::{kernel_main, memory::map::MemoryMap};
 
+use super::Riscv64;
+
 global_asm!(include_str!("entrypoint.S"));
 
 #[no_mangle]
@@ -16,5 +18,5 @@ pub extern "C" fn kernel_boot(_hart_id: i32, devicetree_ptr: *const FdtHeader) -
         .expect("Cannot retrieve device tree root");
     let memory_map = MemoryMap::from_device_tree(&dt_root).expect("Cannot read memory map");
 
-    kernel_main(memory_map)
+    kernel_main::<Riscv64>(memory_map)
 }
