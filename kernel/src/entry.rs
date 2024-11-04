@@ -2,20 +2,13 @@ use core::arch::global_asm;
 
 use devicetree::FdtHeader;
 
-use crate::{
-    kernel_main, sbi,
-    traps::{InterruptCode, Traps},
-};
+use crate::Supervisor;
 
-global_asm!(include_str!("entrypoint.S"));
+global_asm!(include_str!("entry.S"));
 
 #[no_mangle]
-pub extern "C" fn kernel_boot(_hart_id: i32, _devicetree_ptr: *const FdtHeader) -> ! {
-    let mut traps = unsafe { Traps::initialize() };
-    traps.enable();
-    traps.enable_interrupts(InterruptCode::Timer);
-    unsafe {
-        let _ = sbi::timer::set(400000);
-    }
-    kernel_main()
+pub extern "C" fn entrypoint_rs(_hart_id: i32, _devicetree_ptr: *const FdtHeader) -> ! {
+    let supervisor = Supervisor::new();
+    unsafe { supervisor.set_global() };
+    supervisor.launch();
 }

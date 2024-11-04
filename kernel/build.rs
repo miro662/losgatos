@@ -3,7 +3,7 @@ use std::env;
 fn main() {
     let sbi_next_address = env::var("SBI_NEXT_ADDRESS").unwrap_or("0x0000000080200000".to_string());
 
-    let watched_files = ["kernel/entrypoint.S", "kernel/linker.ld"];
+    let watched_files = ["kernel/entry.S", "kernel/linker.ld"];
     for file in watched_files {
         println!("cargo:rerun-if-changed={}", file);
     }

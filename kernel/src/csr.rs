@@ -56,3 +56,4 @@ csr!(stvec);
 csr!(sip);
 csr!(sie);
 csr!(scause);
+csr!(sscratch);

@@ -20,8 +20,11 @@ entrypoint:
     // initialize stack
     la sp, _stack_end
 
+    // load 0 to sscratch, making it a null pointer
+    csrwi sscratch, 0
+
     // a0 - hart id - is preserved
-    tail kernel_boot
+    tail entrypoint_rs
 
 .section .text
 
@@ -47,6 +50,7 @@ trap_handler:
     sd t5, 14*8(sp)
     sd t6, 15*8(sp)
 
+    csrr a0, scause
     call handle_trap
 
     // restore caller-saved registers

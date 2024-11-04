@@ -1,8 +1,9 @@
 use core::arch::asm;
+use core::fmt::Write;
 
 use crate::{
     csr::{self, Csr},
-    sbi,
+    sbi, Supervisor,
 };
 
 extern "C" {
@@ -113,22 +114,15 @@ impl From<InterruptCode> for InterruptMask {
 }
 
 #[no_mangle]
-pub extern "C" fn handle_trap() {
-    let (mut traps, cause) = unsafe { Traps::trap_handler_initialize() };
+pub extern "C" fn handle_trap(cause: TrapCause) {
     let cause: TrapCauseDescription = cause.into();
+    let supervisor = Supervisor::global();
 
-    {
-        use crate::debug::DebugOutput;
-        use core::fmt::Write;
-
-        let dout = DebugOutput::new();
-        writeln!(&dout, "received interrupt: {:?}", cause).unwrap();
-    }
-
-    match cause.into() {
+    match cause {
         TrapCauseDescription::Interrupt(InterruptCode::Timer) => {
-            unsafe { sbi::timer::set(!0).unwrap() };
-            traps.enable();
+            let mut debug_output = supervisor.debug_output();
+            writeln!(debug_output, "timer interrupt received").unwrap();
+            unsafe { sbi::timer::set(0xffffffffffffffff) }.unwrap();
         }
         other => {
             panic!("unhandled interrupt: {:?}", other)
