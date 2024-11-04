@@ -1,30 +1,27 @@
-use core::{fmt, marker::PhantomData};
-
+use core::fmt;
 use core_lib::sync::AtomicMutex;
 
-use crate::arch::Arch;
+use crate::sbi;
 
-pub struct DebugOutput<A: Arch> {
-    arch: PhantomData<A>,
+pub struct DebugOutput {
     mutex: AtomicMutex<()>,
 }
 
-impl<A: Arch> DebugOutput<A> {
-    pub fn new() -> DebugOutput<A> {
+impl DebugOutput {
+    pub fn new() -> DebugOutput {
         DebugOutput {
-            arch: PhantomData::default(),
             mutex: AtomicMutex::new(()),
         }
     }
 }
 
-impl<'a, A: Arch> fmt::Write for &'a DebugOutput<A> {
+impl<'a> fmt::Write for &'a DebugOutput {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         let _ = self.mutex.lock();
         for byte in s.as_bytes() {
             unsafe {
-                A::putc(*byte);
-            }
+                sbi::debug_console::write_byte(*byte).unwrap();
+            };
         }
         Ok(())
     }

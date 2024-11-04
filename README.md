@@ -1,6 +1,6 @@
 # losgatos
 
-a simple operating system (riscv64-only for now)
+a simple RISC-V 64 operating system
 
 ## Running
 

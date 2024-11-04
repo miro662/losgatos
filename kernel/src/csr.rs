@@ -7,6 +7,8 @@ use core::arch::asm;
 pub unsafe trait Csr {
     unsafe fn write(value: usize);
     unsafe fn read() -> usize;
+    unsafe fn set_bits(mask: usize);
+    unsafe fn clear_bits(mask: usize);
 }
 
 macro_rules! csr {
@@ -20,6 +22,22 @@ macro_rules! csr {
                 i = in(reg) value
                );
             }
+
+            unsafe fn set_bits(mask: usize) {
+               asm!(
+                concat!("csrs ", stringify!($name), ", {i}"),
+                i = in(reg) mask
+               );
+            }
+
+            unsafe fn clear_bits(mask: usize) {
+               asm!(
+                concat!("csrc ", stringify!($name), ", {i}"),
+                i = in(reg) mask
+               );
+            }
+
+
             unsafe fn read() -> usize {
                let result: usize;
                asm!(

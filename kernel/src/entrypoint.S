@@ -25,9 +25,9 @@ entrypoint:
 
 .section .text
 
-.global interrupt_handler
+.global trap_handler
 .align 4
-interrupt_handler:
+trap_handler:
     // store caller-saved registers
     addi sp, sp, -16*8
     sd ra, 0*8(sp)
@@ -47,7 +47,7 @@ interrupt_handler:
     sd t5, 14*8(sp)
     sd t6, 15*8(sp)
 
-    call handle_interrupt
+    call handle_trap
 
     // restore caller-saved registers
     ld ra, 0*8(sp)
