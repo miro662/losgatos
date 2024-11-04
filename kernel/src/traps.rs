@@ -114,7 +114,7 @@ impl From<InterruptCode> for InterruptMask {
 }
 
 #[no_mangle]
-pub extern "C" fn handle_trap(cause: TrapCause) {
+pub extern "C" fn trap_handler_rs(cause: TrapCause) {
     let cause: TrapCauseDescription = cause.into();
     let supervisor = Supervisor::global();
 

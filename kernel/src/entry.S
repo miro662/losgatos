@@ -23,7 +23,8 @@ entrypoint:
     // load 0 to sscratch, making it a null pointer
     csrwi sscratch, 0
 
-    // a0 - hart id - is preserved
+    // a0, a1 - hart id & dtb pointer - are being preserved
+    // and passed to entrypoint_rs as arguments
     tail entrypoint_rs
 
 .section .text
@@ -51,7 +52,7 @@ trap_handler:
     sd t6, 15*8(sp)
 
     csrr a0, scause
-    call handle_trap
+    call trap_handler_rs
 
     // restore caller-saved registers
     ld ra, 0*8(sp)
