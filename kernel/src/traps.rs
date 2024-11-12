@@ -10,48 +10,22 @@ extern "C" {
     pub fn trap_handler();
 }
 
-pub struct Traps;
+const SIE_MASK: usize = 1 << 1;
 
-impl Traps {
-    const SIE_MASK: usize = 1 << 1;
+#[inline]
+pub unsafe fn initialize_interrupts() {
+    let trap_handler_addr = trap_handler as *const () as usize;
+    csr::stvec::write(trap_handler_addr);
+}
 
-    pub unsafe fn initialize() -> Traps {
-        let trap_handler_addr = trap_handler as *const () as usize;
-        csr::stvec::write(trap_handler_addr);
-        Traps
-    }
+#[inline]
+pub unsafe fn enable_interrupts() {
+    csr::sstatus::set_bits(SIE_MASK);
+}
 
-    #[inline]
-    unsafe fn trap_handler_initialize() -> (Traps, TrapCause) {
-        let mut traps = Traps;
-        traps.disable();
-        let cause = csr::scause::read();
-        (traps, TrapCause(cause))
-    }
-
-    pub fn enable(&mut self) {
-        unsafe {
-            csr::sstatus::set_bits(Self::SIE_MASK);
-        };
-    }
-
-    pub fn disable(&mut self) {
-        unsafe {
-            csr::sstatus::clear_bits(Self::SIE_MASK);
-        };
-    }
-
-    pub fn enable_interrupts(&mut self, mask: impl Into<InterruptMask>) {
-        unsafe {
-            csr::sie::set_bits(mask.into().0);
-        }
-    }
-
-    pub fn disable_interrupts(&mut self, mask: impl Into<InterruptMask>) {
-        unsafe {
-            csr::sie::clear_bits(mask.into().0);
-        }
-    }
+#[inline]
+pub unsafe fn disable_interrupts() {
+    csr::sstatus::clear_bits(SIE_MASK);
 }
 
 #[repr(transparent)]
@@ -113,8 +87,18 @@ impl From<InterruptCode> for InterruptMask {
     }
 }
 
+impl InterruptMask {
+    pub unsafe fn enable(&self) {
+        csr::sie::set_bits(self.0);
+    }
+
+    pub unsafe fn disable(&self) {
+        csr::sie::clear_bits(self.0);
+    }
+}
+
 #[no_mangle]
-pub extern "C" fn trap_handler_rs(cause: TrapCause) {
+pub unsafe extern "C" fn trap_handler_rs(cause: TrapCause) {
     let cause: TrapCauseDescription = cause.into();
     let supervisor = Supervisor::global();
 

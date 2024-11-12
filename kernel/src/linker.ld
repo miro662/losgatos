@@ -32,7 +32,6 @@ SECTIONS {
         _bss_end = .;
         _heap_start = .;
     }
-
 } 
 
 ENTRY(entrypoint)

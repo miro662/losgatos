@@ -26,3 +26,15 @@ impl<'a> fmt::Write for &'a DebugOutput {
         Ok(())
     }
 }
+
+#[macro_export]
+macro_rules! kdebug {
+    ($($arg:tt)*) => {
+        {
+            use crate::Supervisor;
+            use core::fmt::Write;
+            let mut debug_output = Supervisor::global().debug_output();
+            writeln!(debug_output, "[{}:{}] {}", file!(), line!(), format_args!($($arg)*)).unwrap()
+        }
+    };
+}

@@ -4,6 +4,7 @@
 mod csr;
 mod debug;
 mod entry;
+mod memory;
 mod sbi;
 mod traps;
 
@@ -11,7 +12,11 @@ use core::panic::PanicInfo;
 use core::{fmt::Write, ptr::addr_of};
 use csr::Csr;
 use debug::DebugOutput;
-use traps::{wfi, InterruptCode, Traps};
+use devicetree::{FdtHeader, FlattenedDeviceTree};
+use memory::map::MemoryMap;
+use traps::{
+    disable_interrupts, enable_interrupts, initialize_interrupts, wfi, InterruptCode, InterruptMask,
+};
 
 struct Supervisor {
     debug_output: DebugOutput,
@@ -24,14 +29,25 @@ impl Supervisor {
         }
     }
 
-    pub fn launch(&self) -> ! {
-        writeln!(&self.debug_output, "Hello, kernel!").unwrap();
-        let mut traps = unsafe { Traps::initialize() };
-        traps.enable();
-        traps.enable_interrupts(InterruptCode::Timer);
+    pub fn launch(&self, devicetree_ptr: *const FdtHeader) -> ! {
+        kdebug!("Hello, kernel!");
+
         unsafe {
-            sbi::timer::set(10000);
+            initialize_interrupts();
+            enable_interrupts();
+            let mask: InterruptMask = InterruptCode::Timer.into();
+            mask.enable();
         }
+        kdebug!("Initialized interrupts");
+
+        kdebug!("Parsing devicetree at 0x{:x}", devicetree_ptr as usize);
+        let fdt = unsafe {
+            FlattenedDeviceTree::from_ptr(devicetree_ptr).expect("Empty devicetree pointer")
+        };
+
+        kdebug!("Building memory map");
+        let memory_map = MemoryMap::build_from_devicetree(&fdt);
+
         wfi()
     }
 
@@ -60,9 +76,8 @@ impl Supervisor {
 fn panic_handler(panic: &PanicInfo) -> ! {
     // do not use global debug output as we're not sure it is correctly initialized
     let debug_output = DebugOutput::new();
-
     unsafe {
-        Traps::initialize().disable();
+        disable_interrupts();
     }
 
     writeln!(&debug_output, "Kernel panic: {:?}", panic.message()).unwrap();

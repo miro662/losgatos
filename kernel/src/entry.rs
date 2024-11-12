@@ -7,8 +7,8 @@ use crate::Supervisor;
 global_asm!(include_str!("entry.S"));
 
 #[no_mangle]
-pub extern "C" fn entrypoint_rs(_hart_id: i32, _devicetree_ptr: *const FdtHeader) -> ! {
+pub extern "C" fn entrypoint_rs(_hart_id: i32, devicetree_ptr: *const FdtHeader) -> ! {
     let supervisor = Supervisor::new();
     unsafe { supervisor.set_global() };
-    supervisor.launch();
+    supervisor.launch(devicetree_ptr);
 }
